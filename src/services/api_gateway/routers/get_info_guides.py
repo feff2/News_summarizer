@@ -4,18 +4,19 @@ from typing import List, Literal
 from fastapi import APIRouter, Query, Request
 from starlette.concurrency import run_in_threadpool
 
-from ..logger import api_logger
 from ..schemes import GetInfoGuidesIn, InfoGuide, GetInfoGuidesOut
-from ..settings import settings
 
 
 router = APIRouter(tags=["info_guides"], include_in_schema=False)
 
 
 async def __info_guides(
+    request: Request,
     user_id: str,
     limit: int,
 ) -> GetInfoGuidesOut:
+    settings = request.app.state.settings
+
     filter_resp = requests.post(f"{settings.POSTGRES_API}/get_user_info", json={"user_id": user_id})
     filter_resp.raise_for_status()
     themes, sources = filter_resp.json()["filters"], filter_resp.json()["sources"]
@@ -37,8 +38,9 @@ async def __info_guides(
     return GetInfoGuidesOut(guides=info_guides)
 
 
-@router.get("/info_guides", response_model=StatOut)
+@router.get("/info_guides", response_model=GetInfoGuidesOut)
 async def info_guides(
-    request: GetInfoGuidesIn,
+    request: Request,
+    payload: GetInfoGuidesIn
 ):
-    return await __info_guides(GetInfoGuidesIn.user_id, GetInfoGuidesIn.limit)
+    return await __info_guides(request, GetInfoGuidesIn.user_id, GetInfoGuidesIn.limit)

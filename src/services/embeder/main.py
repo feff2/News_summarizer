@@ -38,7 +38,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger=logger
     )
     encoder_client.create_model()
-    
 
     encoder_client = LlmClient(
         inference_host=settings.INFERENCE_HOST,

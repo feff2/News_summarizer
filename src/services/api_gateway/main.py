@@ -11,12 +11,18 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic_settings import BaseSettings
 
+from .settings import settings
 from .routers import get_info_guides_router
+from ...shared.logger import LoggerWrapper
 
+
+logger = LoggerWrapper("api_gateway")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Lifespan: API Gateway запускается...")
+    app.state.logger = logger
+    app.state.settings = settings
     yield
     logger.info("Lifespan: API Gateway останавливается...")
 

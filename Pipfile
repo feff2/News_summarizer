@@ -4,15 +4,32 @@ verify_ssl = false
 name = "pip_conf_index_global"
 
 [packages]
-newspaper3k = "==0.2.8"
-feedparser = "==6.0.12"
-lxml-html-clean = "==0.4.2"
-webdrivermanager = "==0.10.0"
-playwright = "==1.55.0"
-pydantic = "==2.11.7"
+fastapi = "==0.116.1"
+uvicorn = "== 0.35.0"
+pytest = "==8.4.1"
+pytest-asyncio = "==1.1.0"
 pydantic-settings = "==2.10.1"
+httpx = "==0.28.1"
+
+[llm]
+vllm = "==0.10.1.1"
+numpy = "==2.2.6"
+transformers = "==4.56.0"
+torch = "==2.7.1"
+
+[embeder]
+numpy = "==1.23.5"
+transformers = "==4.56.0"
+torch = "==2.7.1"
+nvidia-pytriton = "==0.5.14"
+
+[db]
+qdrant-client = ">=1.0.0"
 
 [dev-packages]
+ruff = "==0.2.1"
+pre-commit = "==3.6.1"
+pyright = "==1.1.350"
 
 [requires]
 python_version = "3.11"

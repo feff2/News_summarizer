@@ -18,20 +18,26 @@ class InfoGuide(BaseModel):
 class GetInfoGuidesOut(BaseModel):
     guides: List[InfoGuide]
 
-class AddNewSourceIn(BaseModel):
+class RegisterUserIn(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=6)
+    themes: List[str] = Field(default_factory=list)
+    sources: List[str] = Field(default_factory=list)
+
+
+class LoginUserIn(BaseModel):
+    username: str
+    password: str
+
+
+class UserOut(BaseModel):
     user_id: str
-    sources: List[str] = Field(..., description="Список RSS/ссылок/идентификаторов")
+    username: str
+    themes: List[str]
+    sources: List[str]
 
-class AddNewSourceOut(BaseModel):
-    added: List[str]
-    skipped: List[str]
 
-class UpdateUserProfileIn(BaseModel):
-    user_id: str
-    topics: Optional[List[str]] = None
-    sources: Optional[List[str]] = None
-
-class UpdateUserProfileOut(BaseModel):
-    updated_topics: List[str]
-    updated_sources: List[str]
-
+class AuthResponse(BaseModel):
+    success: bool
+    message: str
+    user: Optional[UserOut] = None

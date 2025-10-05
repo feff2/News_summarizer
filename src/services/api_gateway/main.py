@@ -1,19 +1,16 @@
-import asyncio
-import inspect
-import logging
 from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from typing import Any
 
 import uvicorn
-from fastapi import APIRouter, FastAPI, Request, status
+from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic_settings import BaseSettings
+from fastapi.middleware.cors import CORSMiddleware
 
-from .settings import settings
-from .routers import get_info_guides_router
-from ...shared.logger import LoggerWrapper
+from src.services.api_gateway.settings import settings
+from src.services.api_gateway.routers import get_info_guides_router, auth_router
+from src.shared.logger import LoggerWrapper
 
 
 logger = LoggerWrapper("api_gateway")
@@ -35,6 +32,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth_router, prefix=settings.API_V1_STR, tags=["Auth"])
 app.include_router(get_info_guides_router, prefix=settings.API_V1_STR, tags=["Info Guides"])
 
 
@@ -67,7 +73,7 @@ async def validation_exception_handler(
 
 if __name__ == "__main__":
     uvicorn.run(
-        "src.api_gateway.main:app",
+        "src.services.api_gateway.main:app",
         host="0.0.0.0",
         port=settings.API_PORT,
         workers=1,

@@ -1,13 +1,19 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 
-from ..schemes import EncodeIn, EncodeOut
+from src. services.embeder.schemes import EncodeIn, EncodeOut
+
 
 router = APIRouter(tags=["encode", "bi_encoder"], include_in_schema=False)
 
+
 async def __encode(
+    request: Request,
     input_: EncodeIn,
 ) -> EncodeOut:
+    logger = request.app.state.logger
+    client = request.app.state.encoder_client
+
     msg = f"Encode request_id={input_.request_id}, text={input_.text[:100]}"
     logger.debug(msg)
 
@@ -28,5 +34,5 @@ async def __encode(
     f"/encode/",
     summary="Получить вектор текста",
 )
-async def predict(input_: EncodeIn) -> EncodeOut:
-    return await __encode(input_)
+async def predict(request: Request, input_: EncodeIn) -> EncodeOut:
+    return await __encode(request, input_)

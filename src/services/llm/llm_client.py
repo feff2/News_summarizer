@@ -1,10 +1,8 @@
 import torch
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
-
-from ..shared.logger import LoggerWrapper
 
 
 class LlmClient:
@@ -14,6 +12,7 @@ class LlmClient:
         device: torch.device,
         params: Dict,
         system_prompt: str,
+        logger,
     ):
         self.model_name = model_name
         self.model: Optional[LLM] = None
@@ -21,14 +20,14 @@ class LlmClient:
         self._system_prompt = system_prompt
         self._params = SamplingParams(**params)
         self._device = device 
-        self._logger = LoggerWrapper(llm_client)
+        self._logger = logger
 
     def start(self: "LlmClient") -> None:
         self.model = LLM(
-            model_name=self.model_name,
+            model=self.model_name,
             tensor_parallel_size=1,
-            swap_space=4, 
-            gpu_memory_utilization=0.9,
+            swap_space=2, 
+            gpu_memory_utilization=0.8,
             max_model_len=4096, 
         )
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)

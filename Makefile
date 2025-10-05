@@ -98,7 +98,7 @@ lint-fix:
 	pipenv run ruff --fix src && pipenv run ruff format src
 
 .PHONY: docker-build-image-llm
-docker-build-image-llm: create-requirements-txt-llm
+docker-build-image-llm: #create-requirements-txt-llm
 	@echo "Build LLM service image..."
 	$(DOCKER) build --platform $(DOCKER_PLATFORM) \
 		-t $(LLM_IMAGE) \
@@ -176,7 +176,7 @@ run-api-gateway: docker-build-image-api-gateway
 
 .PHONY: run-all
 run-all:
-	$(DOCKER-COMPOSE) -f deployment/docker_compose/docker-compose.yml up -d
+	$(DOCKER-COMPOSE) -f deployment/docker-compose.yml up -d
 
 .PHONY: install-deps-on-ci
 install-deps-on-ci: create-requirements-txt-dev

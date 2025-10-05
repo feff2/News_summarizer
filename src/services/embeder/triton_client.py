@@ -6,9 +6,6 @@ import numpy as np
 from pytriton.client import AsyncioModelClient
 
 
-from ..shared.logger import LoggerWrapper
-
-
 @dataclass(frozen=True)
 class InferResultBiEncoder:
     result: np.ndarray
@@ -23,17 +20,15 @@ class TritonClient:
     def __init__(
         self: "TritonClient",
         inference_host: str,
-        bi_encoder_port: int,
+        embeder_port: int,
         inference_timeout_s: int,
-        bi_encoder_name: str,
-        device: torch.device,
-        logger: LoggerWrapper,
+        embeder_name: str,
+        logger,
     ) -> None:
         self.__inference_host = inference_host
-        self.__bi_encoder_port = bi_encoder_port
+        self.embeder_port = embeder_port
         self.__inference_timeout_s = inference_timeout_s
-        self.__bi_encoder_name = bi_encoder_name
-        self.__device = device
+        self.embeder_name = embeder_name
         self.logger = logger
 
     async def encode(
@@ -46,7 +41,7 @@ class TritonClient:
         msg = f"Sequence={str(sequence)}"  # noqa: RUF010
         self.logger.debug(msg)
 
-        result_dict = await self.__bi_encoder_client.infer_sample(
+        result_dict = await self.embeder_client.infer_sample(
             sequence,
         )
 
@@ -56,14 +51,13 @@ class TritonClient:
 
 
     async def destroy(self: "TritonClient") -> None:
-        await self.__bi_encoder_client.close()
-        await self.__cross_encoder_client.close()
+        await self.embeder_client.close()
 
     def create_model(self: "TritonClient") -> None:
-        self.__bi_encoder_client = AsyncioModelClient(
-            url=f"{self.__inference_host}:{self.__bi_encoder_port}",
-            model_name=self.__bi_encoder_name,
+        self.embeder_client = AsyncioModelClient(
+            url=f"{self.__inference_host}:{self.embeder_port}",
+            model_name=self.embeder_name,
             inference_timeout_s=self.__inference_timeout_s,
         )
-        msg = "Bi encoder client started"
+        msg = "Embeder client started"
         self.logger.info(msg)

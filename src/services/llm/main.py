@@ -1,20 +1,18 @@
-import asyncio
-import inspect
-import logging
 from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from typing import Any
 
-import torch
 import uvicorn
-from fastapi import APIRouter, FastAPI, Request, status
+from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic_settings import BaseSettings
 
-from .llm_client import LlmClient
-from .routers import generate_router
+from src.services.llm.llm_client import LlmClient
+from src.services.llm.routers import generate_router
+from src.services.llm.settings import settings
+from src.shared.logger import LoggerWrapper
+
+logger = LoggerWrapper("llm_service")
 
 
 @asynccontextmanager
@@ -23,12 +21,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     llm_client = LlmClient(
         model_name=settings.MODEL_NAME,
-        device=torch.device(settings.DEVICE),
+        device=settings.DEVICE,
         params=settings.PARAMS,
         system_prompt=settings.SYSTEM_PROMPT,
+        logger=logger,
     )
     llm_client.start()
     app.state.llm_client = llm_client
+    app.state.logger = logger
     logger.info("Lifespan: LLM клиент успешно инициализирован.")
 
     yield  

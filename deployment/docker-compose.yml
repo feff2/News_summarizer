@@ -1,0 +1,70 @@
+version: "3.9"
+
+networks:
+  news_summarizer-network:
+    driver: bridge
+
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - ./qdrant/storage:/qdrant/storage
+      - ./qdrant/logs:/qdrant/logs
+    environment:
+      - QDRANT__SERVICE__AUTOFLUSH_INTERVAL=1
+    restart: unless-stopped
+    networks:
+      - news_summarizer-network
+
+  vector_db_service:
+    image: news_summarizer-db
+    container_name: db
+    ports:
+      - "8003:8003"
+    env_file:
+      - .env
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+      - PYTHONPATH=/app/src
+    volumes:
+      - ./vector_db_service/models:/app/models:ro 
+    restart: unless-stopped
+    networks:
+      - news_summarizer-network
+
+  llm_service:
+    image: news_summarizer-llm
+    container_name: llm
+    ports:
+      - "8000:8000"
+    working_dir: /app
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+      - VECTOR_DB_URL=http://vector_db_service:8003
+    shm_size: "2g"
+    mem_limit: "6g"
+    gpus: all
+    restart: unless-stopped
+    networks:
+      - news_summarizer-network
+
+  news_summarizer-embeder:
+    image: news_summarizer-embeder
+    container_name: news_summarizer-embeder
+    ports:
+      - "8002:8002"
+    working_dir: /app
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+    gpus: all
+    restart: unless-stopped
+    networks:
+      - news_summarizer-network

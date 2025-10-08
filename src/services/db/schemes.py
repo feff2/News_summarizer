@@ -18,7 +18,6 @@ class ArticleOut(BaseModel):
 
 class ArticleInsertRequest(BaseModel):
     articles: List[ArticleIn]
-    embeddings: List[List[float]]
 
 
 class ArticleInsertResponse(BaseModel):
@@ -57,3 +56,63 @@ class HealthResponse(BaseModel):
     status: str
     postgres: bool
     qdrant: bool
+
+class ArticleBase(BaseModel):
+    url: str
+    summary: Optional[str] = None
+    published_at: Optional[datetime] = None
+    source: Optional[str] = None
+
+
+class ArticleInsert(ArticleBase):
+    """Схема для вставки статьи"""
+    pass
+
+
+class ArticleOut(ArticleBase):
+    """Выходная схема статьи"""
+    id: int
+    created_at: datetime
+
+
+class ArticleInsertRequest(BaseModel):
+    """Запрос на вставку статей"""
+    articles: List[ArticleInsert]
+
+
+class ArticleInsertResponse(BaseModel):
+    """Ответ на вставку статей"""
+    articles: List[ArticleOut]
+    inserted_count: int
+
+
+class ClusterRepresentative(BaseModel):
+    """Представитель кластера (краткая инфа о статье)"""
+    article_id: int
+    title: str
+    url: str
+    published_at: Optional[datetime]
+
+class NewsClusterCreate(BaseModel):
+    """Создание нового кластера новостей"""
+    summary: str
+    cluster_label: int
+    members_count: int
+    article_ids: List[int]  # Все статьи в кластере
+    representative_ids: List[int]  # ID представителей
+
+class NewsClusterOut(BaseModel):
+    """Выходная схема кластера"""
+    id: int
+    summary: str
+    cluster_label: int
+    members_count: int
+    created_at: datetime
+    updated_at: datetime
+    representatives: List[ClusterRepresentative]
+    article_ids: List[int]
+
+class ClustersListResponse(BaseModel):
+    """Список кластеров"""
+    clusters: List[NewsClusterOut]
+    total: int

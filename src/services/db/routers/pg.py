@@ -1,8 +1,47 @@
 from fastapi import APIRouter, Request, HTTPException, status
-from ..schemes import ArticleInsertRequest, ArticleInsertResponse, ArticleOut, ArticlesListResponse, DeleteResponse
+from ..schemes import ArticleInsertRequest, ArticleInsertResponse, ArticleOut, ArticlesListResponse, DeleteResponse, NewsClusterCreate, NewsClusterOut
 
 
 router = APIRouter(prefix="/pg", tags=["postgres"])
+
+
+@router.post(
+    "clusters",
+    response_model=NewsClusterOut,
+    summary="Создать новый кластер новостей",
+    status_code=status.HTTP_201_CREATED
+)
+async def create_cluster(
+    request: Request,
+    data: NewsClusterCreate
+) -> NewsClusterOut:
+    logger = request.app.state.logger
+    db_manager = request.app.state.db_manager
+    
+    logger.info(f"Create cluster: label={data.cluster_label}, articles={len(data.article_ids)}")
+    
+    try:
+        cluster_dict = data.model_dump()
+        cluster_id = db_manager.insert_cluster(cluster_dict)
+        
+        cluster = db_manager.get_cluster_by_id(cluster_id)
+        
+        if cluster is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to retrieve created cluster"
+            )
+        
+        logger.info(f"Created cluster {cluster_id} with {data.members_count} members")
+        
+        return NewsClusterOut(**cluster)
+        
+    except Exception as e:
+        logger.error(f"Create cluster error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка создания кластера: {str(e)}"
+        )
 
 
 @router.post(
@@ -18,7 +57,7 @@ async def insert_articles_pg(
     logger = request.app.state.logger
     db_manager = request.app.state.db_manager
     
-    logger.debug(f"PG Insert: получено {len(data.articles)} статей")
+    logger.info(f"PG Insert: получено {len(data.articles)} статей")
     
     try:
         articles_dict = [art.model_dump() for art in data.articles]
@@ -66,7 +105,7 @@ async def get_articles_pg(
     logger = request.app.state.logger
     db_manager = request.app.state.db_manager
     
-    logger.debug(f"PG Get: limit={limit}, offset={offset}, order_by={order_by}")
+    logger.info(f"PG Get: limit={limit}, offset={offset}, order_by={order_by}")
     
     try:
         articles = db_manager.get_articles(
@@ -111,7 +150,7 @@ async def get_article_by_id_pg(
     logger = request.app.state.logger
     db_manager = request.app.state.db_manager
     
-    logger.debug(f"PG Get by ID: article_id={article_id}")
+    logger.info(f"PG Get by ID: article_id={article_id}")
     
     try:
         article = db_manager.get_article_by_id(article_id)
@@ -157,7 +196,7 @@ async def delete_article_pg(
     logger = request.app.state.logger
     db_manager = request.app.state.db_manager
     
-    logger.debug(f"PG Delete: article_id={article_id}")
+    logger.info(f"PG Delete: article_id={article_id}")
     
     try:
         # Проверяем существование

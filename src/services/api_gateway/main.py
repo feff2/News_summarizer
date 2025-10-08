@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from src.services.api_gateway.settings import settings
 from src.services.api_gateway.routers import get_info_guides_router, auth_router
@@ -43,6 +44,8 @@ app.add_middleware(
 app.include_router(auth_router, prefix=settings.API_V1_STR, tags=["Auth"])
 app.include_router(get_info_guides_router, prefix=settings.API_V1_STR, tags=["Info Guides"])
 
+app.mount("/", StaticFiles(directory="/app/static", html=True), name="static")
+
 
 @app.middleware("http")
 async def generic_exception_handler(
@@ -51,8 +54,8 @@ async def generic_exception_handler(
 ) -> JSONResponse:
     try:
         return await call_next(request)
-    except Exception as err:  # noqa: BLE001
-        logger.exception(err)
+    except Exception as err:
+        logger.error(err)
         return JSONResponse(
             content={"detail": "Internal Server Error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

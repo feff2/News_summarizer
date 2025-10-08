@@ -162,7 +162,7 @@ run-llm: docker-build-image-llm
 .PHONY: run-embeder
 run-embeder: docker-build-image-embeder
 	@echo "Start Triton client container..."
-	$(DOCKER) run --gpus all -it --rm $(EMBEDER_IMAGE)
+	$(DOCKER) run --gpus all -p 9004:9004 -it --rm $(EMBEDER_IMAGE)
 
 .PHONY: run-db-service
 run-db-service: docker-build-image-db-service

@@ -11,10 +11,10 @@ class Settings(BaseModel):
         "database": "news_db",
         "user": "news_summarizer",
         "password": os.getenv("pg_password")
-    },
+    }
     COLLECTION_NAME: str = "news_embedings"
     API_HOST: str = "localhost"
-    API_PORT: int = 8080
+    API_PORT: int = 8001
     RELOAD: bool = True
     API_V1_STR: str = "/api/v1"
 

@@ -2,7 +2,7 @@ import re
 
 from newspaper import Article
 from playwright.sync_api import sync_playwright
-
+from src.shared.logger import LoggerWrapper
 
 class ShkulevScraper:
     def __init__(self, logger_name="shkulev_scraper"):
@@ -39,7 +39,7 @@ class ShkulevScraper:
                     if href and re.search(r'/(text|incidents|longread|transport)/', href):
                         links.add(href)
                 
-                self.logger.debug(f"Найдено {len(links)} новостных статей")
+                self.logger.info(f"Найдено {len(links)} новостных статей")
                 
                 links_dict = {}
 
@@ -50,9 +50,9 @@ class ShkulevScraper:
                         article.download()
                         article.parse()
 
-                        self.logger.debug("---")
-                        self.logger.debug("Заголовок: " + article.title)
-                        self.logger.debug("Текст: " + article.text[:500] + "...")
+                        self.logger.info("---")
+                        self.logger.info("Заголовок: " + article.title)
+                        self.logger.info("Текст: " + article.text[:500] + "...")
                         links[full_url] = f"Заголовок: {article.title}\nТекст: {article.text}"
                 
                     except Exception as e:

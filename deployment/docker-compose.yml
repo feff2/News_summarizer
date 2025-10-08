@@ -1,9 +1,3 @@
-version: "3.9"
-
-networks:
-  news_summarizer-network:
-    driver: bridge
-
 services:
   qdrant:
     image: qdrant/qdrant:latest
@@ -12,33 +6,58 @@ services:
       - "6333:6333"
       - "6334:6334"
     volumes:
-      - ./qdrant/storage:/qdrant/storage
-      - ./qdrant/logs:/qdrant/logs
+      - qdrant_storage:/qdrant/storage
+      - qdrant_logs:/qdrant/logs
     environment:
       - QDRANT__SERVICE__AUTOFLUSH_INTERVAL=1
     restart: unless-stopped
     networks:
       - news_summarizer-network
 
+  postgres:
+    image: postgres:15  # Укажите версию
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecret
+      - POSTGRES_DB=news_db
+    restart: unless-stopped
+    networks:
+      - news_summarizer-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   vector_db_service:
     image: news_summarizer-db
     container_name: db
     ports:
-      - "8003:8003"
+      - "8001:8001"
     env_file:
       - .env
     environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=mysecret
+      - DATABASE_NAME=news_db
       - QDRANT_URL=http://qdrant:6333
       - PYTHONPATH=/app/src
     volumes:
-      - ./vector_db_service/models:/app/models:ro 
+      - ./vector_db_service/models:/app/models:ro
     restart: unless-stopped
     networks:
       - news_summarizer-network
 
-  llm_service:
-    image: news_summarizer-llm
-    container_name: llm
+  news_summarizer-web_app:
+    image: news_summarizer-api_gateway
+    container_name: web_app
     ports:
       - "8000:8000"
     working_dir: /app
@@ -46,25 +65,28 @@ services:
       - .env
     environment:
       - PYTHONPATH=/app/src
-      - VECTOR_DB_URL=http://vector_db_service:8003
-    shm_size: "2g"
-    mem_limit: "6g"
-    gpus: all
+      - DB_API_URL=http://vector_db_service:8001
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    depends_on:
+      - vector_db_service
     restart: unless-stopped
     networks:
       - news_summarizer-network
 
-  news_summarizer-embeder:
-    image: news_summarizer-embeder
-    container_name: news_summarizer-embeder
-    ports:
-      - "8002:8002"
-    working_dir: /app
-    env_file:
-      - .env
-    environment:
-      - PYTHONPATH=/app/src
-    gpus: all
-    restart: unless-stopped
-    networks:
-      - news_summarizer-network
+networks:
+  news_summarizer-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  qdrant_storage:
+    driver: local
+  qdrant_logs:
+    driver: local

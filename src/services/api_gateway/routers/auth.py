@@ -16,7 +16,7 @@ async def register(
     
     try:
         check_resp = requests.get(
-            f"{settings.POSTGRES_API}/check_user",
+            f"{settings.DB_URL}/api/v1/pg/check_user",
             params={"username": payload.username}
         )
         
@@ -27,7 +27,7 @@ async def register(
             )
         
         create_resp = requests.post(
-            f"{settings.POSTGRES_API}/create_user",
+            f"{settings.DB_URL}/api/v1/pg/create_user",
             json={
                 "username": payload.username,
                 "password": payload.password,
@@ -70,7 +70,7 @@ async def login(
     
     try:
         auth_resp = requests.post(
-            f"{settings.POSTGRES_API}/authenticate",
+            f"{settings.DB_URL}/api/v1/pg/authenticate",
             json={
                 "username": payload.username,
                 "password": payload.password
@@ -118,7 +118,7 @@ async def check_username(
     
     try:
         check_resp = requests.get(
-            f"{settings.POSTGRES_API}/check_user",
+            f"{settings.DB_URL}/api/v1/pg/check_user",
             params={"username": username}
         )
         check_resp.raise_for_status()
@@ -147,7 +147,7 @@ async def get_user(
     
     try:
         user_resp = requests.get(
-            f"{settings.POSTGRES_API}/get_user_info",
+            f"{settings.DB_URL}/api/v1/pg/get_user_info",
             params={"user_id": user_id}
         )
         
@@ -188,7 +188,7 @@ async def update_preferences(
     
     try:
         update_resp = requests.put(
-            f"{settings.POSTGRES_API}/update_user_preferences",
+            f"{settings.DB_URL}/api/v1/pg/update_user_preferences",
             json={
                 "user_id": user_id,
                 "themes": themes,

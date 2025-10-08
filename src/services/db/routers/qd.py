@@ -18,7 +18,7 @@ async def insert_embeddings_qdrant(
     logger = request.app.state.logger
     db_manager = request.app.state.db_manager
     
-    logger.debug(f"Qdrant Insert: получено {len(data.embeddings)} эмбеддингов")
+    logger.info(f"Qdrant Insert: получено {len(data.embeddings)} эмбеддингов")
     
     try:
         # Конвертируем в словари
@@ -69,7 +69,7 @@ async def search_similar_qdrant(
     logger = request.app.state.logger
     db_manager = request.app.state.db_manager
     
-    logger.debug(
+    logger.info(
         f"Qdrant Search: vector_dim={len(data.query_vector)}, "
         f"limit={data.limit}, threshold={data.score_threshold}"
     )
@@ -126,7 +126,7 @@ async def delete_embedding_qdrant(
     logger = request.app.state.logger
     db_manager = request.app.state.db_manager
     
-    logger.debug(f"Qdrant Delete: article_id={article_id}")
+    logger.info(f"Qdrant Delete: article_id={article_id}")
     
     try:
         client = db_manager.get_qdrant_client()

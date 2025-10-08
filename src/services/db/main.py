@@ -64,7 +64,7 @@ async def generic_exception_handler(
     try:
         return await call_next(request)
     except Exception as err:
-        logger.exception(f"Unhandled exception for request {request.url.path}: {err}")
+        logger.error(f"Unhandled exception for request {request.url.path}: {err}")
         return JSONResponse(
             content={"detail": "Internal Server Error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -76,7 +76,7 @@ async def validation_exception_handler(
     _: Request,
     exc: RequestValidationError,
 ) -> JSONResponse:
-    logger.warning(f"Validation error: {exc.errors()}")
+    logger.error(f"Validation error: {exc.errors()}")
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={"detail": exc.errors()},

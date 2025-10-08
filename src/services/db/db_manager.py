@@ -1,4 +1,7 @@
+import os
 import psycopg2
+
+
 from psycopg2.extras import RealDictCursor
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, Distance, VectorParams
@@ -24,7 +27,13 @@ class DatabaseManager:
     
     @contextmanager
     def pg_connection(self):
-        conn = psycopg2.connect(**self.pg_config)
+        conn = conn = psycopg2.connect(
+            host=os.getenv("DATABASE_HOST", "postgres"),
+            port=os.getenv("DATABASE_PORT", 5432),
+            user=os.getenv("DATABASE_USER", "postgres"),
+            password=os.getenv("DATABASE_PASSWORD", "mysecret"),
+            dbname=os.getenv("DATABASE_NAME", "news_db")
+        )
         try:
             yield conn
             conn.commit()
@@ -188,6 +197,132 @@ class DatabaseManager:
             cur.execute("DELETE FROM news WHERE id = %s", (article_id,))
             cur.close()
     
+    def insert_cluster(self, cluster_data: dict) -> int:
+        """
+        Вставить кластер новостей и связи с статьями
+        
+        Args:
+            cluster_data: {
+                'summary': str,
+                'cluster_label': int,
+                'members_count': int,
+                'article_ids': List[int],
+                'representative_ids': List[int]
+            }
+            
+        Returns:
+            ID созданного кластера
+        """
+        with self.pg_connection() as conn:
+            cur = conn.cursor()
+            
+            # Вставляем кластер
+            cur.execute("""
+                INSERT INTO news_clusters (summary, cluster_label, members_count)
+                VALUES (%s, %s, %s)
+                RETURNING id
+            """, (
+                cluster_data['summary'],
+                cluster_data['cluster_label'],
+                cluster_data['members_count']
+            ))
+            
+            cluster_id = cur.fetchone()[0]
+            
+            # Вставляем связи с статьями
+            article_ids = cluster_data['article_ids']
+            representative_ids = set(cluster_data.get('representative_ids', []))
+            
+            for article_id in article_ids:
+                is_representative = article_id in representative_ids
+                cur.execute("""
+                    INSERT INTO cluster_articles (cluster_id, article_id, is_representative)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (cluster_id, article_id) DO NOTHING
+                """, (cluster_id, article_id, is_representative))
+            
+            cur.close()
+            self._logger.info(f"Inserted cluster {cluster_id} with {len(article_ids)} articles")
+            return cluster_id
+    
+    def get_clusters(
+        self,
+        limit: int = 50,
+        offset: int = 0,
+        order_by: str = "created_at DESC"
+    ) -> List[dict]:
+        """Получить список кластеров с представителями"""
+        with self.pg_connection() as conn:
+            cur = conn.cursor()
+            
+            # Получаем кластеры
+            cur.execute(f"""
+                SELECT id, summary, cluster_label, members_count, created_at, updated_at
+                FROM news_clusters
+                ORDER BY {order_by}
+                LIMIT %s OFFSET %s
+            """, (limit, offset))
+            
+            clusters = []
+            for row in cur.fetchall():
+                cluster_id = row[0]
+                
+                # Получаем представителей кластера
+                cur.execute("""
+                    SELECT n.id, n.title, n.url, n.published_at
+                    FROM news n
+                    JOIN cluster_articles ca ON n.id = ca.article_id
+                    WHERE ca.cluster_id = %s AND ca.is_representative = TRUE
+                    ORDER BY n.published_at DESC
+                """, (cluster_id,))
+                
+                representatives = [
+                    {
+                        'article_id': r[0],
+                        'title': r[1],
+                        'url': r[2],
+                        'published_at': r[3]
+                    }
+                    for r in cur.fetchall()
+                ]
+                
+                # Получаем все ID статей кластера
+                cur.execute("""
+                    SELECT article_id
+                    FROM cluster_articles
+                    WHERE cluster_id = %s
+                """, (cluster_id,))
+                
+                article_ids = [r[0] for r in cur.fetchall()]
+                
+                clusters.append({
+                    'id': row[0],
+                    'summary': row[1],
+                    'cluster_label': row[2],
+                    'members_count': row[3],
+                    'created_at': row[4],
+                    'updated_at': row[5],
+                    'representatives': representatives,
+                    'article_ids': article_ids
+                })
+            
+            cur.close()
+            return clusters
+    
+    def get_cluster_by_id(self, cluster_id: int) -> Optional[dict]:
+        """Получить кластер по ID"""
+        clusters = self.get_clusters(limit=1, offset=0, order_by=f"id = {cluster_id} DESC")
+        return clusters[0] if clusters else None
+    
+    def delete_cluster(self, cluster_id: int) -> bool:
+        """Удалить кластер (связи удалятся автоматически по CASCADE)"""
+        with self.pg_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM news_clusters WHERE id = %s", (cluster_id,))
+            deleted = cur.rowcount > 0
+            cur.close()
+            return deleted
+
     def close(self):
         if self._qdrant_client:
             self._qdrant_client.close()

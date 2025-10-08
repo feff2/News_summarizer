@@ -22,6 +22,7 @@ ENV PYTHONPATH=/app/src:$PYTHONPATH
 
 WORKDIR /app
 
-EXPOSE 8002
+EXPOSE 9004
 
-CMD ["python", "-m", "uvicorn", "services.embeder.main:app", "--host", "0.0.0.0", "--port", "8002"]
+# Вместо этого в вашем embeder Dockerfile:
+CMD ["python", "-m", "uvicorn", "src.services.embeder.main:app", "--host", "0.0.0.0", "--port", "9004"]
